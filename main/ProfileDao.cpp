@@ -2,5 +2,7 @@
 #include "Context.h"
 
 std::string ProfileDao::getPassword(const std::string userName) {
-    return Context::getPassword(userName);
+  static Context const context;
+  static_cast<void>(context);
+  return Context::getPassword(userName);
 }

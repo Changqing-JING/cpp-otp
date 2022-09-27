@@ -2,27 +2,35 @@
 // Created by Joseph Yao on 2018/7/31.
 //
 
-#include <string>
 #include "AuthenticationService.h"
 #include "ProfileDao.h"
+#include "RedirectableLogger.hpp"
 #include "RsaTokenDao.h"
+#include <string>
 
-bool AuthenticationService::isValid(const std::string userName, const std::string password) {
-    // 根據 account 取得自訂密碼
-    ProfileDao profileDao;
-    auto passwordFromDao = profileDao.getPassword(userName);
+const char *AuthenticationService::loginFailedMessage = "login failed";
 
-    // 根據 account 取得 RSA token 目前的亂數
-    RsaTokenDao rsaToken;
-    auto randomCode = rsaToken.getRandom(userName);
+AuthenticationService::AuthenticationService(ProfileDao &profileDao,
+                                             RsaTokenDao &rsaTokenDao,
+                                             RedirectableLogger &logger)
+    : profileDao_(profileDao), rsaTokenDao_(rsaTokenDao), logger_(logger) {}
 
-    // 驗證傳入的 password 是否等於自訂密碼 + RSA token亂數
-    auto validPassword = passwordFromDao + randomCode;
-    auto isValid = password == validPassword;
+bool AuthenticationService::isValid(const std::string userName,
+                                    const std::string password) {
+  // 根據 account 取得自訂密碼
+  auto passwordFromDao = profileDao_.getPassword(userName);
 
-    if (isValid) {
-        return true;
-    } else {
-        return false;
-    }
+  // 根據 account 取得 RSA token 目前的亂數
+  auto randomCode = rsaTokenDao_.getRandom(userName);
+
+  // 驗證傳入的 password 是否等於自訂密碼 + RSA token亂數
+  auto validPassword = passwordFromDao + randomCode;
+  auto isValid = password == validPassword;
+
+  if (isValid) {
+    return true;
+  } else {
+    logger_ << loginFailedMessage;
+    return false;
+  }
 }

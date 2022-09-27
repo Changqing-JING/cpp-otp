@@ -1,14 +1,36 @@
+#include "main/AuthenticationService.h"
 #include "gtest/gtest.h"
-#include "../main/AuthenticationService.h"
+#include <sstream>
+#include "ProfileMock.hpp"
+#include "RsaTokenMock.hpp"
 
 namespace {
 
-    TEST(AuthenticationService, IsValid) {
-        AuthenticationService target;
+struct UserAccount {
+  std::string username;
+  std::string password;
+};
 
-        bool actual = target.isValid("joey", "91000000");
+TEST(AuthenticationService, IsValid) {
+  ProfileMock profileMock;
+  RsaTokenMock rsaTokenMock;
+  RedirectableLogger logger;
+  std::stringstream sstream;
+  logger.setOutputStream(sstream);
+  AuthenticationService target(profileMock, rsaTokenMock, logger);
 
-        ASSERT_TRUE(actual);
-    }
+  UserAccount correctUser{"joey", "91000000"};
+  bool loginSuccess = target.isValid(correctUser.username, correctUser.password);
 
+  ASSERT_TRUE(loginSuccess);
+
+  loginSuccess = target.isValid(correctUser.username, correctUser.password + "0");
+
+  ASSERT_FALSE(loginSuccess);
+
+  std::string const outputMessage = sstream.str();
+
+  ASSERT_TRUE(outputMessage.find(AuthenticationService::loginFailedMessage) != std::string::npos);
 }
+
+} // namespace
